@@ -1,0 +1,291 @@
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <vector>
+#include <cmath>
+
+
+void set_random_seed();
+int randn(int n);
+int compare(std::vector<int> attempt, std::vector<int> temp);
+
+
+struct mm_code_maker{
+
+    void init(int i_length, int i_num){
+        length = i_length;
+        num = i_num;
+    }
+
+    void generate_sequence()
+    {
+      sequence.clear();
+
+        for(int i = 0; i < length; i++)
+        {
+            sequence.push_back(randn(num));
+        }
+
+    }
+
+    void give_feedback(const std::vector<int>& attempt, int& black_hits, int& white_hits)
+    {
+
+        std::vector<int> temp;
+        std::vector<int> temp2;
+        black_hits=0;
+        white_hits=0;
+
+        for(int i=0;i<length;i++)
+        {
+            if(attempt[i]==sequence[i])
+            {
+                black_hits++;
+            }
+            else
+            {
+                temp.push_back(sequence[i]);
+                temp2.push_back(attempt[i]);
+            }
+        }
+
+        for(int i=0;i<temp.size();i++)
+        {
+            for(int j=0;j<temp2.size();j++)
+            {
+                  if(temp[i]==temp2[j])
+                  {
+                    white_hits++;
+                    temp2[j]=-1;
+                    temp[i]=-2;
+                  }
+            }
+        }
+
+        temp.clear();
+        temp2.clear();
+
+
+
+    }
+
+    std::vector<int> sequence;
+
+    int length;
+    int num;
+
+};
+
+
+    void init(int i_length, int i_num){
+
+        length = i_length;
+        num = i_num;
+
+        int x=num;
+        int y=length;
+
+        int limit=std::pow(x,y)-1;
+
+
+        for(int i=0;i<=limit;i++)
+        {
+            int j=i;
+            int count=0;
+            std::vector<int> temp;
+            while(j>0)
+            {
+                count = j%(x) ;
+                j=j/(x);
+                temp.push_back(count);
+            }
+
+            int t=y-temp.size();
+
+            for(int k=0;k<t;k++)
+            {
+                result.push_back(0);
+            }
+
+            if(temp.size()!=0)
+            {
+                t=temp.size()-1;
+                for(int k=0;k<temp.size();k++)
+                {
+                    result.push_back(temp[t]);
+                    t--;
+                }
+                temp.clear();
+            }
+
+        }
+
+      std::cout<<std::endl<<result.size()/length<<std::endl;
+
+    }
+
+
+    void create_attempt(std::vector<int>& attempt)
+    {
+        int maxnum=result.size()/length;
+
+        attempt.clear();
+
+        int index=randn(maxnum);
+
+        index=length*index;
+
+        for(int i=0;i<length;i++)
+        {
+          attempt.push_back(result[index]);
+          index++;
+        }
+
+
+
+    }
+
+
+    void learn(std::vector<int>& attempt, int black_hits, int white_hits){
+        int t= black_hits*10 + white_hits;
+        int k=0;
+
+        std::vector<int> result2;
+
+        for(int i=0;i<(result.size()/length);i++)
+        {
+            std::vector<int> temp;
+
+            for(int j=0;j<length;j++)
+            {
+                temp.push_back(result[k]);
+                k++;
+            }
+
+            if(compare(attempt,temp)==t)
+            {
+                if(attempt!=temp)
+                {
+                    for(int i=0;i<temp.size();i++)
+                    {
+                        result2.push_back(temp[i]);
+                    }
+                }
+
+            }
+        }
+
+        result=result2;
+        result2.clear();
+
+        std::cout<<std::endl<<result.size()/length<<std::endl;
+    }
+
+    std::vector<int> result;
+    int length;
+    int num;
+
+};
+
+
+int main(){
+
+    set_random_seed();
+
+    int length, num;
+    std::cout << "enter length of sequence and number of possible values:" << std::endl;
+    std::cin >> length >> num;
+
+    mm_solver solver;
+
+    solver.init(length, num);
+
+    mm_code_maker maker;
+
+    maker.init(length, num);
+
+    maker.generate_sequence();
+
+
+      int black_hits=0, white_hits=0;
+      int attempts_limit = 5000;
+      int attempts = 0;
+
+
+      while((black_hits < length) && (attempts < attempts_limit)){
+          std::vector<int> attempt;
+          solver.create_attempt(attempt);
+          maker.give_feedback(attempt, black_hits, white_hits);
+          std::cout << "attempt: " << std::endl;
+          for(int i = 0; i < attempt.size(); i++){
+              std::cout << attempt[i] << " ";
+          }
+          std::cout << std::endl;
+          std::cout << "black pegs: " << black_hits << " " << " white pegs: " << white_hits << std::endl;
+          solver.learn(attempt, black_hits, white_hits);
+          attempts++;
+      }
+
+
+      if(black_hits == length){
+          std::cout << "the solver has found the sequence in " << attempts << " attempts" << std::endl;
+      }
+      else{
+          std::cout << "after " << attempts << " attempts still no solution" << std::endl;
+      }
+      std::cout << "the sequence generated by the code maker was:" << std::endl;
+      for(int i = 0; i < maker.sequence.size(); i++){
+          std::cout << maker.sequence[i] << " ";
+      }
+      std::cout << std::endl;
+
+    return 0;
+}
+
+
+void set_random_seed(){
+    std::srand(std::time(0));
+}
+
+int randn(int n){
+    return std::rand() % n;
+}
+
+int compare(std::vector<int> attempt, std::vector<int> temp)
+{
+    std::vector<int> save;
+    std::vector<int> save2;
+    int b_hits=0, w_hits=0;
+
+    for(int i=0;i<attempt.size();i++)
+    {
+        if(attempt[i]==temp[i])
+        {
+            b_hits++;
+        }
+        else
+        {
+            save.push_back(temp[i]);
+            save2.push_back(attempt[i]);
+        }
+    }
+
+
+    for(int i=0;i<save.size();i++)
+    {
+        for(int j=0;j<save2.size();j++)
+        {
+            if(save[i]==save2[j])
+            {
+                w_hits++;
+                save[i]=-1;
+                save2[j]=-2;
+            }
+        }
+    }
+
+    save.clear();
+    save2.clear();
+
+    return (b_hits*10 + w_hits);
+}
